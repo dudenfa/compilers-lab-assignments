@@ -1,0 +1,6 @@
+clang -O0 -Xclang -disable-O0-optnone -S -emit-llvm test.c -o test.ll
+
+clang++ -std=c++17 -fPIC -shared -o strength-reduction.dylib strength-reduction.cpp \
+  $(/opt/homebrew/opt/llvm@19/bin/llvm-config --cxxflags --ldflags --system-libs --libs core passes)
+
+opt -S -load-pass-plugin=./strength-reduction.dylib -passes="strength-reduction,dce" ./test.ll -o ./test.optimized.ll
