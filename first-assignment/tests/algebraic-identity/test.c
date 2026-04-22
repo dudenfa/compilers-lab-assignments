@@ -1,24 +1,6 @@
 int main() {
 
-    // addizione
-    //int x = 5;
-    //int y = x + 1;
-    //return y;
-
-    // moltiplicazione
-    // int x = 5;
-    //int y = x * 8;
-    // return y;
-
-
-   //int b = 5;
-    //int a = b + 1;
-    //int c = a - 1;
-    //return c;
-
-
     int a = 15;
-
 
     // addizioni e sottrazioni
     int b = a + 0;
