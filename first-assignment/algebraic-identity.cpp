@@ -34,7 +34,7 @@ struct AlgebraicIdentity : PassInfoMixin<AlgebraicIdentity> {
           I.replaceAllUsesWith(L);
           Changed = true;
         } 
-        // controllo solo addizioni (proprità commutativa)
+        // controllo solo addizioni (proprietà commutativa)
         else if (I.getOpcode() == Instruction::Add && CL && CL->isZero()) {
           // 0 + x  =>  x
           I.replaceAllUsesWith(R);

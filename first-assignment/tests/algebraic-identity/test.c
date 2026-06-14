@@ -1,19 +1,51 @@
-int main() {
+// Test per Algebraic Identity Pass
 
-    int a = 15;
+int add(int a, int b) {
+    int x1, x2, x3;
 
-    // addizioni e sottrazioni
-    int b = a + 0;
-    int c = 0 + a;
-    int d = a - 0;
-    int e = 0 - a;
+    x1 = a + 0;      // should optimize --> a
+    x2 = 0 + a;      // should optimize --> a
+    x3 = a + b;      // no opt
 
-    // moltiplicazioni e divisioni
-    int f = a * 1;
-    int g = 1 * a;
-    int h = a / 1;
-    int i = 1 / a;
+    return x1 + x2 + x3;
+}
 
+int sub(int a, int b) {
+    int x1, x2, x3;
 
-    
+    x1 = a - 0;      // should optimize --> a
+    x2 = 0 - a;      // no opt (non e' identita')
+    x3 = a - b;      // no opt
+
+    return x1 + x2 + x3;
+}
+
+int mul(int a, int b) {
+    int x1, x2, x3, x4;
+
+    x1 = a * 1;      // should optimize --> a
+    x2 = 1 * a;      // should optimize --> a
+    x3 = a * 0;      // no opt (non implementato nel nostro pass)
+    x4 = a * b;      // no opt
+
+    return x1 + x2 + x3 + x4;
+}
+
+int div_test(int a, int b) {
+    int x1, x2, x3, x4;
+
+    x1 = a / 1;      // should optimize --> a
+    x2 = 0 / a;      // no opt (non implementato nel nostro pass)
+    x3 = 1 / a;      // no opt
+    x4 = a / b;      // no opt
+
+    return x1 + x2 + x3 + x4;
+}
+
+// verifica che ottimizzazioni annidate funzionino in un solo passaggio
+int nested(int a) {
+    int x = a + 0;
+    int y = x + 0;
+    int z = y + 0;
+    return z;
 }

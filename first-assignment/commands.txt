@@ -1,0 +1,32 @@
+# Comandi manuali — Primo Assignment
+# Eseguire dalla cartella first-assignment/
+
+LLVM=/opt/homebrew/opt/llvm@19/bin
+
+# --- Build plugin ---
+clang++ -std=c++17 -fPIC -shared -o algebraic-identity.dylib algebraic-identity.cpp \
+  $($LLVM/llvm-config --cxxflags --ldflags --system-libs --libs core passes)
+
+clang++ -std=c++17 -fPIC -shared -o strength-reduction.dylib strength-reduction.cpp \
+  $($LLVM/llvm-config --cxxflags --ldflags --system-libs --libs core passes)
+
+clang++ -std=c++17 -fPIC -shared -o multi-inst-opt.dylib multi-inst-opt.cpp \
+  $($LLVM/llvm-config --cxxflags --ldflags --system-libs --libs core passes)
+
+# --- Algebraic Identity ---
+clang -O0 -Xclang -disable-O0-optnone -S -emit-llvm tests/algebraic-identity/test.c -o tests/algebraic-identity/test.ll
+$LLVM/opt -S -load-pass-plugin=./algebraic-identity.dylib -passes="alg-id,dce" \
+  tests/algebraic-identity/test.ll -o tests/algebraic-identity/alg-id.test.optimized.dce.ll
+
+# --- Strength Reduction ---
+clang -O0 -Xclang -disable-O0-optnone -S -emit-llvm tests/strength-reduction/test.c -o tests/strength-reduction/test.ll
+$LLVM/opt -S -load-pass-plugin=./strength-reduction.dylib -passes="strength-reduction,dce" \
+  tests/strength-reduction/test.ll -o tests/strength-reduction/strength-reduction.test.optimized.dce.ll
+
+# --- Multi Instruction Optimization (mem2reg necessario su IR da C -O0) ---
+clang -O0 -Xclang -disable-O0-optnone -S -emit-llvm tests/multi-inst-opt/test.c -o tests/multi-inst-opt/test.ll
+$LLVM/opt -S -load-pass-plugin=./multi-inst-opt.dylib -passes="mem2reg,multi-inst-opt,dce" \
+  tests/multi-inst-opt/test.ll -o tests/multi-inst-opt/multi-inst-opt.test.optimized.dce.ll
+
+# --- Run all tests ---
+./run-tests.sh
