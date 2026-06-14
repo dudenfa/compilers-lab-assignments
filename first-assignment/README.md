@@ -81,7 +81,24 @@ Il pass elimina coppie di istruzioni consecutive che si annullano a vicenda, sos
 | `(C * x) / C` | `(4 * x) / 4` | `x` | commutatività di `mul` |
 | `(x / C) * C` | `(x / 8) * 8` | `x` | solo se la divisione in IR ha flag `exact` |
 
-Il flag `exact` indica che la divisione non perde informazione. **Clang da C `-O0` non lo genera**, quindi nei nostri test dimostriamo i casi negativi `(x/3)*3` e `(x/8)*8` che **non** vanno ottimizzati — comportamento corretto.
+#### Perché `(x * C) / C` sì, ma `(x / C) * C` spesso no
+
+**Caso sicuro — moltiplica poi dividi:**
+
+`(x * 4) / 4` si può ottimizzare in `x`, perché moltiplicare e dividere per la stessa costante si annulla.
+
+**Caso pericoloso — dividi poi moltiplica:**
+
+In C la divisione intera **tronca** verso zero. Se ottimizzassimo `(x / C) * C` in `x` senza controlli, cambieremmo il significato del programma.
+
+Esempi concreti (testati in `tests/multi-inst-opt/test.c`):
+
+| Espressione | Con `x = 7` | Con `x = 10` |
+| --- | --- | --- |
+| `(x / 3) * 3` | `7/3 = 2`, poi `2*3 = **6**` ≠ 7 | — |
+| `(x / 8) * 8` | — | `10/8 = 1`, poi `1*8 = **8**` ≠ 10 |
+
+Per questo il pass **non ottimizza** `(x / C) * C` quando la divisione perde informazione. Nel codice controlliamo il flag `exact` in LLVM IR: ottimizziamo solo se la divisione è garantita reversibile. Clang da C con `-O0` non genera quel flag, quindi nei test mostriamo i casi negativi sopra — comportamento corretto.
 
 **Non ottimizziamo:**
 - costanti diverse (`(x + 5) - 4`)
