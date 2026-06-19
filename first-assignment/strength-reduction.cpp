@@ -42,8 +42,7 @@
 //     - x*8  => shl,  x*9 => shl+add,  x*15 => shl+sub
 //     - x*6  => mul ancora presente (non ottimizzato)
 //   In @test_sdiv: x/8 => ashr.  In @test_udiv: x/4 => lshr.
-//
-//   ./run-tests.sh
+//   Vedi README.md sezione "Test manuali" per la checklist completa.
 //
 // NOME PIPELINE: strength-reduction
 //=============================================================================

@@ -28,5 +28,4 @@ clang -O0 -Xclang -disable-O0-optnone -S -emit-llvm tests/multi-inst-opt/test.c 
 $LLVM/opt -S -load-pass-plugin=./multi-inst-opt.dylib -passes="mem2reg,multi-inst-opt,dce" \
   tests/multi-inst-opt/test.ll -o tests/multi-inst-opt/multi-inst-opt.test.optimized.dce.ll
 
-# --- Run all tests ---
-./run-tests.sh
+# Verifica manuale: vedi README.md sezione "Come verificare l'output"

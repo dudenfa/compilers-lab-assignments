@@ -9,7 +9,6 @@ first-assignment/
 ├── algebraic-identity.cpp      # Pass 1: identità algebriche (x+0, x*1, ...)
 ├── strength-reduction.cpp      # Pass 2: strength reduction (15*x, x/8, ...)
 ├── multi-inst-opt.cpp          # Pass 3: ottimizzazione multi-istruzione (b+1, a-1 => b)
-├── run-tests.sh                # Script per build + test di tutti i pass
 ├── commands.txt                # Comandi manuali di riferimento
 └── tests/
     ├── algebraic-identity/
@@ -108,49 +107,54 @@ Per questo il pass **non ottimizza** `(x / C) * C` quando la divisione perde inf
 Su codice C con `-O0`, usare **`mem2reg`** prima del pass per promuovere le variabili stack in SSA.
 
 
-## Eseguire tutti i test
+## Test manuali
 
-Dalla cartella `first-assignment/`:
+Tutti i comandi sono anche in [commands.txt](commands.txt). Eseguirli dalla cartella `first-assignment/`.
+
+### Flusso comune
+
+1. **Compila** il plugin `.dylib` con `clang++` e `llvm-config`
+2. **Genera IR** da `tests/<pass>/test.c` con `clang -O0 -Xclang -disable-O0-optnone -S -emit-llvm`
+3. **Applica** il pass con `opt -load-pass-plugin=... -passes="..."` (aggiungi `dce` e, se serve, `mem2reg`)
+4. **Verifica** l'output `.ll` aprendo il file o estraendo una singola funzione (vedi sotto)
+
+Per estrarre una funzione dall'IR:
 
 ```bash
-chmod +x run-tests.sh
-./run-tests.sh
+awk '/^define .+ @nome_funzione\(/,/^}/' tests/algebraic-identity/alg-id.test.optimized.dce.ll
 ```
 
-Lo script compila i tre plugin (`.dylib`), genera l'IR dai file `.c`, applica i pass e verifica l'output **per funzione** (casi positivi e negativi).
+Confronto rapido input vs output:
 
-### Cosa verificano i test
-
-
-| Pass               | Casi positivi                         | Casi negativi (non devono essere ottimizzati) |
-| ------------------ | ------------------------------------- | --------------------------------------------- |
-| Algebraic Identity | `a±0`, `0+a`, `×1`, `/1`, nested      | `0-a`, `a*b`, `a*0`, `0/a`, `1/a`             |
-| Strength Reduction | `×8/9/7/15`, `/4` (udiv), `/8` (sdiv) | `×6`, `/6`, `×-8`, `/-4`, `/3`                |
-| Multi-Inst Opt     | `(x±k)∓k`, `(x*C)/C`, caso prof | costanti diverse, ordine sbagliato, `(x/3)*3`, `(x/8)*8` |
-
-
-Ispirati alla struttura di [AY02/compilers-lab-assignments](https://github.com/AY02/compilers-lab-assignments/tree/main/1_assignment), adattati alle ottimizzazioni effettivamente implementate nei nostri pass.
-
-## Comandi manuali
+```bash
+diff -u tests/algebraic-identity/test.ll tests/algebraic-identity/alg-id.test.optimized.dce.ll
+```
 
 ### 1. Algebraic Identity
 
 ```bash
-# Compila il plugin
 clang++ -std=c++17 -fPIC -shared -o algebraic-identity.dylib algebraic-identity.cpp \
   $(/opt/homebrew/opt/llvm@19/bin/llvm-config --cxxflags --ldflags --system-libs --libs core passes)
 
-# Genera IR da C (-O0, senza optnone)
 clang -O0 -Xclang -disable-O0-optnone -S -emit-llvm \
   tests/algebraic-identity/test.c -o tests/algebraic-identity/test.ll
 
-# Applica il pass (+ dce per rimuovere istruzioni morte)
 /opt/homebrew/opt/llvm@19/bin/opt -S \
   -load-pass-plugin=./algebraic-identity.dylib \
   -passes="alg-id,dce" \
   tests/algebraic-identity/test.ll \
   -o tests/algebraic-identity/alg-id.test.optimized.dce.ll
 ```
+
+**Cosa verificare** (funzione per funzione in `alg-id.test.optimized.dce.ll`):
+
+| Funzione | Deve | Non deve |
+| --- | --- | --- |
+| `@add` | conservare `a+b` | `add ... 0` / `add 0, ...` |
+| `@sub` | conservare `0-a` e `a-b` | `sub ... 0` |
+| `@mul` | conservare `a*b`, `a*0` | `mul ... 1` / `mul 1, ...` |
+| `@div_test` | conservare `0/a`, `1/a`, `a/b` | `sdiv ... 1` (solo divisore 1) |
+| `@nested` | semplificare add con 0 annidate | — |
 
 ### 2. Strength Reduction
 
@@ -168,10 +172,18 @@ clang -O0 -Xclang -disable-O0-optnone -S -emit-llvm \
   -o tests/strength-reduction/strength-reduction.test.optimized.dce.ll
 ```
 
+**Cosa verificare:**
+
+| Funzione | Deve | Non deve (o ancora presente) |
+| --- | --- | --- |
+| `@test_mul` | `shl`, `add`, `sub` per ×8/9/15 | `mul ... 6` (×6 non ottimizzato) |
+| `@test_udiv` | `lshr` per `/4` | `udiv ... 6` |
+| `@test_sdiv` | `ashr` per `/8` | `sdiv ... 3` |
+| `@test_no_opt` | `mul ... -8`, `sdiv ... -4` | — (costanti negative) |
+
 ### 3. Multi-Instruction Optimization
 
-Su codice C generato con `-O0`, clang usa variabili su stack (`alloca` + `load`/`store`).
-Il pass riconosce pattern come `%a = add %b, 1; %c = sub %a, 1` solo dopo **promozione in SSA** con `mem2reg`.
+Su codice C con `-O0` serve **`mem2reg`** prima del pass (promuove stack in SSA).
 
 ```bash
 clang++ -std=c++17 -fPIC -shared -o multi-inst-opt.dylib multi-inst-opt.cpp \
@@ -187,8 +199,21 @@ clang -O0 -Xclang -disable-O0-optnone -S -emit-llvm \
   -o tests/multi-inst-opt/multi-inst-opt.test.optimized.dce.ll
 ```
 
+**Cosa verificare:**
+
+| Funzione | Deve | Non deve |
+| --- | --- | --- |
+| `@test_add_sub`, `@test_add_sub_comm`, `@test_sub_add`, `@test_assignment` | `ret i32 %0` (ritorna l'argomento originale) | `sub`/`add` annullati |
+| `@test_mul_sdiv`, `@test_mul_sdiv_comm`, `@test_mul_udiv` | `ret i32 %0` | `sdiv`/`udiv` |
+| `@test_wrong_constants` | `sub` ancora presente | ottimizzazione |
+| `@test_sub_wrong_order` | `add` ancora presente | ottimizzazione |
+| `@test_div_mul_no_opt`, `@test_div_mul_power2_no_opt` | `mul` ancora presente | `(x/C)*C` non sicuro |
+
+Ispirati alla struttura di [AY02/compilers-lab-assignments](https://github.com/AY02/compilers-lab-assignments/tree/main/1_assignment), adattati alle ottimizzazioni implementate.
+
 ## Note
 
+- Comandi copiabili anche in [commands.txt](commands.txt).
 - I file `.dylib` generati dalla compilazione non vanno committati (sono artefatti locali).
 - `dce` (Dead Code Elimination) è usato dopo i pass per pulire istruzioni sostituite ma non ancora rimosse.
 - Su Linux sostituire l'estensione `.dylib` con `.so` e adattare `LLVM_BIN` se necessario.

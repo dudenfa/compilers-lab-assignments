@@ -1,0 +1,37 @@
+# Comandi manuali — Terzo Assignment (Loop-Invariant Code Motion)
+# Eseguire dalla cartella third-assignment/
+
+# --- 1. Compilare il plugin ---
+clang++ -std=c++17 -fPIC -shared -o loop-invariant-motion.dylib loop-invariant-motion.cpp \
+  $(/opt/homebrew/opt/llvm@19/bin/llvm-config --cxxflags --ldflags --system-libs --libs core passes)
+
+# --- 2. Generare IR da C (-O0, senza optnone) ---
+clang -O0 -Xclang -disable-O0-optnone -S -emit-llvm \
+  tests/test.c -o tests/test.ll
+
+# --- 3. (opzionale) Solo mem2reg: stato "prima" del nostro pass ---
+/opt/homebrew/opt/llvm@19/bin/opt -S -passes=mem2reg \
+  tests/test.ll -o tests/test.mem2reg.ll
+
+# --- 4. Applicare mem2reg + loop-inv-motion ---
+/opt/homebrew/opt/llvm@19/bin/opt -S \
+  -load-pass-plugin=./loop-invariant-motion.dylib \
+  -passes="mem2reg,loop-inv-motion" \
+  tests/test.ll \
+  -o tests/loop-inv-motion.test.optimized.ll
+
+# --- 5. Verificare il risultato (esempio su una funzione) ---
+# Confronta @test_basic_hoist prima e dopo:
+awk '/^define .+ @test_basic_hoist/,/^}/' tests/test.mem2reg.ll
+awk '/^define .+ @test_basic_hoist/,/^}/' tests/loop-inv-motion.test.optimized.ll
+
+# Atteso in test_basic_hoist:
+#   PRIMA  : "mul nsw i32" nel blocco corpo del loop
+#   DOPO   : "mul nsw i32" nel preheader (righe prima del "phi" / br verso header)
+
+# Altri casi in tests/test.c:
+#   test_safe_vs_unsafe   -> mul nel preheader, sdiv ancora nel loop
+#   test_dominance_needed -> sdiv nel preheader (do-while)
+#   test_memory_no_hoist  -> load/store restano nel loop
+
+# Su Linux: sostituire .dylib con .so e adattare il path di llvm-config se necessario.

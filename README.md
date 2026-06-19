@@ -9,6 +9,7 @@ Repository per i laboratori del corso **Compilatori — Middle end** (Prof. Andr
 | --- | ------------------------ | ---------------------------------------- | --------------------- | ---------- |
 | 1   | LLVM Optimization Passes | [first-assignment/](first-assignment/)   | Pass LLVM (C++)       | Completato |
 | 2   | Dataflow Analysis        | [second-assignment/](second-assignment/) | Analisi teorica (PDF) | Completato |
+| 3   | Loop-Invariant Code Motion | [third-assignment/](third-assignment/) | Pass LLVM (C++)       | Completato |
 
 
 ---
@@ -21,15 +22,9 @@ Tre pass per il **New Pass Manager** (LLVM 19+) che applicano ottimizzazioni loc
 - **Strength Reduction** (`strength-reduction`)
 - **Multi-Instruction Optimization** (`multi-inst-opt`)
 
-### Eseguire i test
+### Test manuali
 
-```bash
-cd first-assignment
-chmod +x run-tests.sh
-./run-tests.sh
-```
-
-Lo script compila i plugin, genera l'IR dai test e verifica che le ottimizzazioni siano applicate correttamente.
+Dalla cartella `first-assignment/` compila i plugin, genera l'IR e applica i pass seguendo [first-assignment/README.md](first-assignment/README.md) (sezione **Test manuali**). Confronta l'IR ottimizzato con quello atteso funzione per funzione.
 
 Documentazione: [first-assignment/README.md](first-assignment/README.md)
 
@@ -56,6 +51,20 @@ Documentazione: [second-assignment/README.md](second-assignment/README.md)
 
 ---
 
+## Terzo Assignment — Loop-Invariant Code Motion
+
+Pass LLVM che identifica istruzioni loop-invariant e le sposta nel preheader del ciclo, usando `LoopInfo` e `DominatorTree`.
+
+- **Nome pipeline:** `loop-inv-motion` (non `LICM`, per evitare conflitti col passo ufficiale LLVM)
+
+### Compilare e testare
+
+Vedi i comandi in [third-assignment/commands.txt](third-assignment/commands.txt) e nei commenti di `loop-invariant-motion.cpp`.
+
+Documentazione: [third-assignment/README.md](third-assignment/README.md)
+
+---
+
 ## Struttura repository
 
 ```
@@ -66,13 +75,17 @@ compilers-lab-assignments/
 │   ├── algebraic-identity.cpp
 │   ├── strength-reduction.cpp
 │   ├── multi-inst-opt.cpp
-│   ├── run-tests.sh
 │   ├── commands.txt
 │   └── tests/
-└── second-assignment/
+├── second-assignment/
+│   ├── README.md
+│   ├── assignment-02.pdf
+│   └── images/
+└── third-assignment/
     ├── README.md
-    ├── assignment-02.pdf
-    └── images/
+    ├── loop-invariant-motion.cpp
+    ├── commands.txt
+    └── tests/
 ```
 
 ## Convenzioni

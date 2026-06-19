@@ -37,9 +37,7 @@
 //
 //   # 3) Confronta i due file: in quello ottimizzato non devono esserci
 //      piu' add/mul/sdiv con 0 o 1 (tranne casi non ottimizzabili)
-//
-//   # Oppure lancia tutti i test automatici:
-//   ./run-tests.sh
+//      Vedi README.md sezione "Test manuali" per la checklist per funzione.
 //
 // NOME PIPELINE: alg-id
 //=============================================================================
