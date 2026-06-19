@@ -3,5 +3,8 @@
 *.so
 *.o
 
+# PDF
+second-assignment/
+
 # macOS
 .DS_Store
