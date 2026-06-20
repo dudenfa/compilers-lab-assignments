@@ -4,7 +4,7 @@
 //
 // COSA FA
 //   Fonde due loop consecutivi L0 e L1 in un unico loop, se rispettano le
-//   quattro condizioni delle slide del corso:
+//   quattro condizioni delle slide:
 //     1. adiacenza       — nessun codice tra la fine di L0 e l'inizio di L1
 //     2. stesso trip count — stesso numero di iterazioni (ScalarEvolution)
 //     3. control flow equivalent — L0 domina L1 e L1 post-domina L0
