@@ -1,0 +1,41 @@
+# Comandi manuali — Quarto Assignment (Loop Fusion)
+# Eseguire dalla cartella fourth-assignment/
+
+# --- 1. Compilare il plugin ---
+clang++ -std=c++17 -fPIC -shared -o loop-fusion.dylib loop-fusion.cpp \
+  $(/opt/homebrew/opt/llvm@19/bin/llvm-config --cxxflags --ldflags --system-libs --libs core passes)
+
+# --- 2. Generare IR da C (-O0, senza optnone) ---
+clang -O0 -Xclang -disable-O0-optnone -S -emit-llvm \
+  tests/test.c -o tests/test.ll
+
+# --- 3. (opzionale) Solo mem2reg + loop-simplify: stato "prima" ---
+/opt/homebrew/opt/llvm@19/bin/opt -S -passes="mem2reg,loop-simplify" \
+  tests/test.ll -o tests/test.prepared.ll
+
+# --- 4. Applicare mem2reg + loop-simplify + loop-fusion-opt + simplifycfg ---
+/opt/homebrew/opt/llvm@19/bin/opt -S \
+  -load-pass-plugin=./loop-fusion.dylib \
+  -passes="mem2reg,loop-simplify,loop-fusion-opt,simplifycfg" \
+  tests/test.ll \
+  -o tests/loop-fusion.test.optimized.ll
+
+# --- 5. Verificare il risultato (esempio su una funzione) ---
+awk '/^define .+ @test_simple_fuse/,/^}/' tests/test.prepared.ll
+awk '/^define .+ @test_simple_fuse/,/^}/' tests/loop-fusion.test.optimized.ll
+
+# Atteso in test_simple_fuse:
+#   PRIMA  : due loop separati (due header con phi distinte)
+#   DOPO   : un solo loop; istruzioni di entrambi i corpi nello stesso body
+
+# Altri casi in tests/test.c:
+#   test_positive_dependence  -> FONDE
+#   test_negative_dependence  -> NO (restano 2 loop)
+#   test_different_trip_count -> NO
+#   test_not_adjacent         -> NO
+#   test_write_after_write    -> NO
+#   test_constant_access      -> FONDE
+#   test_while_fuse           -> FONDE (due while consecutivi)
+#   test_dowhile_no_fuse      -> NO (do-while, dipendenza negativa)
+
+# Su Linux: sostituire .dylib con .so e adattare il path di llvm-config se necessario.

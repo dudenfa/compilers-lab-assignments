@@ -10,6 +10,7 @@ Repository per i laboratori del corso **Compilatori — Middle end** (Prof. Andr
 | 1   | LLVM Optimization Passes | [first-assignment/](first-assignment/)   | Pass LLVM (C++)       | Completato |
 | 2   | Dataflow Analysis        | [second-assignment/](second-assignment/) | Analisi teorica (PDF) | Completato |
 | 3   | Loop-Invariant Code Motion | [third-assignment/](third-assignment/) | Pass LLVM (C++)       | Completato |
+| 4   | Loop Fusion                | [fourth-assignment/](fourth-assignment/) | Pass LLVM (C++)     | Completato |
 
 
 ---
@@ -65,6 +66,20 @@ Documentazione: [third-assignment/README.md](third-assignment/README.md)
 
 ---
 
+## Quarto Assignment — Loop Fusion
+
+Pass LLVM che fonde due loop consecutivi se sono adiacenti, hanno lo stesso trip count, sono control-flow equivalent e non hanno dipendenze negative.
+
+- **Nome pipeline:** `loop-fusion-opt` (non `loop-fusion`, per evitare conflitti col passo ufficiale LLVM)
+
+### Compilare e testare
+
+Vedi i comandi in [fourth-assignment/commands.txt](fourth-assignment/commands.txt) e nei commenti di `loop-fusion.cpp`.
+
+Documentazione: [fourth-assignment/README.md](fourth-assignment/README.md)
+
+---
+
 ## Struttura repository
 
 ```
@@ -81,9 +96,14 @@ compilers-lab-assignments/
 │   ├── README.md
 │   ├── assignment-02.pdf
 │   └── images/
-└── third-assignment/
+├── third-assignment/
+│   ├── README.md
+│   ├── loop-invariant-motion.cpp
+│   ├── commands.txt
+│   └── tests/
+└── fourth-assignment/
     ├── README.md
-    ├── loop-invariant-motion.cpp
+    ├── loop-fusion.cpp
     ├── commands.txt
     └── tests/
 ```
