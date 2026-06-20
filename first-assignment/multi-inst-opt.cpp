@@ -44,7 +44,6 @@
 //     @test_assignment: ret i32 %0 (ritorna b direttamente, niente sub)
 //     @test_mul_sdiv:   ret i32 %0 (ritorna x, niente sdiv)
 //     @test_div_mul_no_opt: mul ancora presente (7/3*3 non ottimizzato)
-//   Vedi README.md sezione "Test manuali" per la checklist completa.
 //
 // NOME PIPELINE: multi-inst-opt
 //=============================================================================
